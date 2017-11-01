@@ -7,7 +7,7 @@
 class Interpol:
 
 	# [var] declared for Interpol expression to be executed
-	section = ""
+	expression = ""
 
 	# [var] (list) keywords of interpol
 	keywords = ['CREATE', 'RUPTURE', 'DINT', 'DSTR', 'WITH', 'GIVEME?', 'GIVEYOU!', 'GIVEYOU!!', 'STORE', 'PLUS', 'MINUS', 'TIMES', 'DIVBY', 'MODU', 'RAISE', 'ROOT', 'MEAN', 'DIST']
@@ -27,11 +27,12 @@ class Interpol:
 		while True:
 			file_name = raw_input('Enter the filename of the code to be executed: ')
 			file = open(file_name)
-			expression = file.read()
-			self.section = self.section + expression.rstrip()	# [str func] Multiple whitespaces and tabs are removed
-			if not self.is_valid_start(self.section):
+			content = file.read()
+			self.expression = content.rstrip()	# [str func] Multiple whitespaces and tabs are removed
+			print(self.expression.split(' '))
+			if not self.is_valid_start(self.expression):
 				self.handle_error('Invalid start of section')
-			if not self.is_valid_end(self.section):
+			if not self.is_valid_end(self.expression):
 				self.handle_error('Invalid end of section')
 
 	# [func] (return Boolean) test if the start of section is valid
@@ -48,6 +49,13 @@ class Interpol:
 			return True
 		else:
 			return False
+
+	# [func] (return Boolean) test if var_name is valid
+	def is_valid_varname(self, entry):
+		if entry in keywords:
+			return False
+		else:
+			return True		
 
 	# [func] handle exceptions
 	def handle_error(self, msg): # [param] (msg) message to be printed 
