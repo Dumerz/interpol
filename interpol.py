@@ -8,6 +8,7 @@ class Interpol:
 
 	# [var] declared for Interpol expression to be executed
 	expression = ""
+	sectionList = ""
 
 	# [var] (list) keywords of interpol
 	keywords = ['CREATE', 'RUPTURE', 'DINT', 'DSTR', 'WITH', 'GIVEME?', 'GIVEYOU!', 'GIVEYOU!!', 'STORE', 'PLUS', 'MINUS', 'TIMES', 'DIVBY', 'MODU', 'RAISE', 'ROOT', 'MEAN', 'DIST']
@@ -25,23 +26,31 @@ class Interpol:
 	# [func] get user input on console
 	def get_input(self):
 		while True:
+			self.expression = ""
+			self.sectionList = ""
 			file_name = raw_input('Enter the filename of the code to be executed: ')
 			file = open(file_name)
 			content = file.read()
-			self.expression = content.rstrip()	# [str func] Multiple whitespaces and tabs are removed
-			print(self.expression.split(' '))
-			if not self.is_valid_start(self.expression):
-				self.handle_error('Invalid start of section')
-			if not self.is_valid_end(self.expression):
-				self.handle_error('Invalid end of section')
+			self.expression = content.strip()	# [str func] Multiple whitespaces and tabs are removed
+			self.sectionList = self.expression.split()
+			if not self.is_valid_start(self.sectionList):
+				self.handle_error('Invalid start of section at ' + self.sectionList[0])
+			if not self.is_valid_end(self.sectionList):
+				self.handle_error('Invalid end of section at ' + self.sectionList[len(self.sectionList)-1])
 
 	# [func] (return Boolean) test if the start of section is valid
 	def is_valid_start(self, section):	# [param] (section) section to be tested 
-		return section.startswith(self.keywords[0])
+		if section[0] == self.keywords[0]:
+			return True
+		else:
+			return False
 
 	# [func] (return Boolean) test if the end of section is valid
 	def is_valid_end(self, section):	# [param] (section) section to be tested 
-		return section.endswith(self.keywords[1])
+		if section[len(section)-1] == self.keywords[1]:
+			return True
+		else:
+			return False
 
 	# [func] (return Boolean) test if declare of int valid
 	def is_valid_dint(self, entry):
