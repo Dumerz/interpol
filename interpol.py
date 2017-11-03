@@ -12,7 +12,6 @@ class Interpol:
 
 	# [var] (list) keywords of interpol
 	keywords = ['CREATE', 'RUPTURE', 'DINT', 'DSTR', 'WITH', 'GIVEME?', 'GIVEYOU!', 'GIVEYOU!!', 'STORE', 'IN', 'PLUS', 'MINUS', 'TIMES', 'DIVBY', 'MODU', 'RAISE', 'ROOT', 'MEAN', 'DIST']
-	prim_keywords = ['DINT', 'DSTR', 'GIVEME?', 'GIVEYOU!', 'GIVEYOU!!', 'STORE', 'PLUS', 'MINUS', 'TIMES', 'DIVBY', 'MODU', 'RAISE', 'ROOT', 'MEAN', 'DIST']
 	
 	# [func] initialize the [class] Interpol, trigerred if new instance [class] Interpol is created
 	def __init__(self):
@@ -29,6 +28,7 @@ class Interpol:
 		while True:
 			self.expression = ""
 			self.sectionList = ""
+			print('Press [CTRL] + [Z] to exit interpreter.')
 			file_name = raw_input('Enter the filename of the code to be executed: ') # get file_name of code to be executed
 			if file_name.endswith('.ipol'): # test if file_name has .ipol extension
 				try: # try if the requested file_name exists
@@ -47,35 +47,42 @@ class Interpol:
 		if  self.sectionList == []: # test if section is null
 			self.handle_error('Invalid start of section')
 		elif not self.is_valid_start(self.sectionList, 0): # refer to [func] is_valid_start
-			self.handle_error('Invalid start of section at ' + self.sectionList[0])
+			self.handle_error_pos('Invalid start of section at ' + self.sectionList[0], 0)
 		elif not self.is_valid_end(self.sectionList, len(self.sectionList)-1): # refer to [func] is_valid_end
-			self.handle_error('Invalid end of section at ' + self.sectionList[len(self.sectionList)-1])
-		else:	# Traverse all the codes in the statement
-			current_code = 1
+			self.handle_error_pos('Invalid end of section at ' + self.sectionList[len(self.sectionList)-1],len(self.sectionList)-1)
+		else: # Traverse all the codes in the statement
+			now_token = 1
 			while True:
-				if current_code >= len(self.sectionList)-1: break # Test if the [var] current_code is the last to test; if true break
-				else:
-					if self.is_valid_start(self.sectionList, current_code): # refer to [func] is_valid_start
-						self.handle_error(self.sectionList[current_code] + ' should only be on the start of the section')
+				if now_token >= len(self.sectionList)-1: break # Test if the [var] now_token is the last to test; if true break
+				else: #now_token is NOT the last
+					if self.is_valid_start_end(now_token): # refer to [func] is_valid_start_end
 						break
-					elif self.is_valid_end(self.sectionList, current_code):# refer to [func] is_valid_end
-						self.handle_error(self.sectionList[current_code] + ' should only be on the end of the section')
-						break
-					elif current_code == 1:
-						pass # if self.sectionList[current_code] in self.prim_keywords 
-					print(self.sectionList[current_code])
-					current_code = current_code + 1
+					elif now_token == 1:
+						pass # if self.sectionList[now_token] in self.prim_keywords 
+					print(self.sectionList[now_token])
+					now_token = now_token + 1
+
+	# [func] (return Boolean) test if [var] token is CREATE or RUPTURE
+	def is_valid_start_end(self, token): # [param] token -> current token
+		if self.is_valid_start(self.sectionList, token): # refer to [func] is_valid_start
+			self.handle_error_pos(self.sectionList[token] + ' should only be on the start of the section', token)
+			return True
+		elif self.is_valid_end(self.sectionList, token):# refer to [func] is_valid_end
+			self.handle_error_pos(self.sectionList[token] + ' should only be on the end of the section', token)
+			return True
+		else: #token is NOT token is CREATE or RUPTURE
+			return False
 
 	# [func] (return Boolean) test if the start of section is valid
-	def is_valid_start(self, section, pos):	# [param] (section) section to be tested 
-		if section[pos] == self.keywords[0]:
+	def is_valid_start(self, token, pos):	# [param] (token) token to be tested 
+		if token[pos] == self.keywords[0]:
 			return True
 		else:
 			return False
 
 	# [func] (return Boolean) test if the end of section is valid
-	def is_valid_end(self, section, pos):	# [param] (section) section to be tested 
-		if section[pos] == self.keywords[1]:
+	def is_valid_end(self, token, pos):	# [param] (token) section to be tested 
+		if token[pos] == self.keywords[1]:
 			return True
 		else:
 			return False
@@ -96,7 +103,11 @@ class Interpol:
 
 	# [func] handle exceptions
 	def handle_error(self, msg): # [param] (msg) message to be printed 
-		print(msg)
+		print('Error: ' + msg)
+
+	# [func] handle exceptions
+	def handle_error_pos(self, msg, pos): # [param] (msg) message to be printed 
+		print('Error: [token ' + str(pos + 1) + '] ' + msg)
 
 # New instance of [class] Interpol is created
 # [func] Interpol.__init__ will be automatically triggered
