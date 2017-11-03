@@ -102,7 +102,8 @@ class Interpol:
 										now_token = now_token + 2
 										now_var = []
 									elif self.sectionList[now_token + 1] in self.operations:
-										now_token = now_token + 1
+										var[now_var[1]] = self.evaluate(now_token+1)
+										now_token = now_token + 4
 									else:
 										self.handle_error_pos('Invalid value \'' + self.sectionList[now_token + 1] + '\'', now_token)
 										break
@@ -129,26 +130,57 @@ class Interpol:
 								else:
 									self.handle_error_pos('Invalid variable \'' + self.sectionList[now_token+1] + '\' is not declared', now_token+1)
 									break
+
 							elif self.is_giveyou1(self.sectionList[now_token]):
-								print(var)
 								if self.sectionList[now_token+1] in var_names:
-									pass
+									print var[self.sectionList[now_token+1]]
+									now_token = now_token + 2
 								elif self.sectionList[now_token+1] in self.operations:
-									pass
-								if self.sectionList[now_token + 1].startswith('['): # value dapat
+									print self.evaluate(int(now_token+1))
+									now_token = now_token + 4
+								elif self.sectionList[now_token + 1].startswith('['): # value dapat
 									if self.sectionList[now_token + 1].endswith(']'):
-										pass
+										print self.sectionList[now_token+1].strip('[]').replace('~',' ')
+										now_token = now_token + 2
 								elif self.sectionList[now_token+1].isdigit(): # value dapat
-									pass
+										print self.sectionList[now_token+1]
+										now_token = now_token + 2
 								else:
-									self.handle_error_pos('Invalid tokenz \'' + self.sectionList[now_token] + '\'', now_token)
+									self.handle_error_pos('Invalid token \'' + self.sectionList[now_token+1] + '\'', now_token)
+									break
+
+							elif self.is_giveyou2(self.sectionList[now_token]):
+								if self.sectionList[now_token+1] in var_names:
+									print str(var[self.sectionList[now_token+1]]) + '\n'
+									now_token = now_token + 2
+								elif self.sectionList[now_token+1] in self.operations:
+									print self.evaluate(int(now_token+1))
+									now_token = now_token + 4
+								elif self.sectionList[now_token + 1].startswith('['): # value dapat
+									if self.sectionList[now_token + 1].endswith(']'):
+										print str(self.sectionList[now_token+1].strip('[]').replace('~',' ')) + '\n'
+										now_token = now_token + 2
+								elif self.sectionList[now_token+1].isdigit(): # value dapat
+										print str(self.sectionList[now_token+1]) + '\n'
+										now_token = now_token + 2
+								else:
+									self.handle_error_pos('Invalid token \'' + self.sectionList[now_token+1] + '\'', now_token)
 									break
 							else:
 								break
 						else:
 							self.handle_error_pos('Invalid token \'' + self.sectionList[now_token] + '\'', now_token)
 							break
-
+	# [func] evaluate
+	def evaluate(self, pos):
+		if self.is_plus(self.sectionList, pos):
+			return int(self.sectionList[pos + 1]) + int(self.sectionList[pos + 2])
+		elif self.is_minus(self.sectionList, pos):
+			return int(self.sectionList[pos + 1]) - int(self.sectionList[pos + 2])
+		elif self.is_times(self.sectionList, pos):
+			return int(self.sectionList[pos + 1]) * int(self.sectionList[pos + 2])
+		elif self.is_divide(self.sectionList, pos):
+			return int(self.sectionList[pos + 2]) / int(self.sectionList[pos + 1])
 
 	# [func] (return Boolean) test if [var] token is CREATE or RUPTURE
 	def is_valid_start_end(self, token): # [param] token -> current token
@@ -171,6 +203,34 @@ class Interpol:
 	# [func] (return Boolean) test if the end of section is valid
 	def is_valid_end(self, token, pos):	# [param] (token) section to be tested 
 		if token[pos] == self.keywords[1]:
+			return True
+		else:
+			return False
+
+	# [func] (return Boolean) test if declare of int
+	def is_plus(self, token, pos):
+		if token[pos] == self.keywords[10]:
+			return True
+		else:
+			return False
+
+	# [func] (return Boolean) test if declare of int
+	def is_minus(self, token, pos):
+		if token[pos] == self.keywords[11]:
+			return True
+		else:
+			return False
+
+	# [func] (return Boolean) test if declare of int
+	def is_times(self, token, pos):
+		if token[pos] == self.keywords[12]:
+			return True
+		else:
+			return False
+
+	# [func] (return Boolean) test if declare of int
+	def is_divide(self, token, pos):
+		if token[pos] == self.keywords[13]:
 			return True
 		else:
 			return False
