@@ -242,6 +242,7 @@ class Interpol:
 
 	# [func] evaluate
 	def evaluate(self, pos, var_names, var):
+		store = 0
 		OprStack = []
 		Operations = self.get_operations(pos)
 		for t in reversed(Operations):
@@ -283,6 +284,20 @@ class Interpol:
 			elif t == 'ROOT':
 				if len(OprStack) == 2:
 					OprStack[-2:] = [int(OprStack[-2]) ** (1 / float(OprStack[-1]))]
+				else:
+					self.handle_error_pos('Arithmetic error occured at \'' + t + '\'', pos)
+					break
+			elif t == 'DIST':
+				if len(OprStack) == 2:
+					OprStack[-2:]  = [(((int(store[0]) - int(OprStack[-2])) ** 2) + ((int(store[1]) - int(OprStack[-1])) ** 2)) ** (1 / float(2.0))]
+					store = []
+				else:
+					self.handle_error_pos('Arithmetic error occured at \'' + t + '\'', pos)
+					break
+			elif t == 'AND':
+				if len(OprStack) == 2:
+					store = [int(OprStack[-2]),int(OprStack[-1])]
+					OprStack = []
 				else:
 					self.handle_error_pos('Arithmetic error occured at \'' + t + '\'', pos)
 					break
