@@ -28,7 +28,7 @@ class Interpol:
 		while True:
 			self.expression = ""
 			self.sectionList = ""
-			print('Press [CTRL] + [Z] to exit interpreter.')
+			print('Press [CTRL] + [C] to exit interpreter.')
 			file_name = raw_input('Enter the filename of the code to be executed: ') # get file_name of code to be executed
 			if file_name.endswith('.ipol'): # test if file_name has .ipol extension
 				try: # try if the requested file_name exists
@@ -47,28 +47,41 @@ class Interpol:
 		if  self.sectionList == []: # test if section is null
 			self.handle_error('Invalid start of section')
 		elif not self.is_valid_start(self.sectionList, 0): # refer to [func] is_valid_start
-			self.handle_error_pos('Invalid start of section at ' + self.sectionList[0], 0)
+			self.handle_error_pos('Invalid start of section at \'' + self.sectionList[0] + '\'', 0)
 		elif not self.is_valid_end(self.sectionList, len(self.sectionList)-1): # refer to [func] is_valid_end
-			self.handle_error_pos('Invalid end of section at ' + self.sectionList[len(self.sectionList)-1],len(self.sectionList)-1)
+			self.handle_error_pos('Invalid end of section at \'' + self.sectionList[len(self.sectionList)-1] +  '\'',len(self.sectionList)-1)
 		else: # Traverse all the codes in the statement
 			now_token = 1
+			now_req_token = 'KEYWORD'
 			while True:
 				if now_token >= len(self.sectionList)-1: break # Test if the [var] now_token is the last to test; if true break
 				else: #now_token is NOT the last
 					if self.is_valid_start_end(now_token): # refer to [func] is_valid_start_end
 						break
-					elif now_token == 1:
-						pass # if self.sectionList[now_token] in self.prim_keywords 
-					print(self.sectionList[now_token])
-					now_token = now_token + 1
+					elif now_req_token == 'KEYWORD':
+						if self.sectionList[now_token] in self.keywords:
+							if self.is_valid_dint(self.sectionList[now_token]):
+								if self.is_valid_varname(self.sectionList[now_token + 1], now_token + 1):
+									now_token = now_token + 2
+								else:
+									break
+							else:
+								break
+						else:
+							self.handle_error_pos('Invalid token \'' + self.sectionList[now_token] + '\'', now_token)
+							break
+
+	# [func] reset required token in interpreter
+	def reset_req_token_con():
+		pass
 
 	# [func] (return Boolean) test if [var] token is CREATE or RUPTURE
 	def is_valid_start_end(self, token): # [param] token -> current token
 		if self.is_valid_start(self.sectionList, token): # refer to [func] is_valid_start
-			self.handle_error_pos(self.sectionList[token] + ' should only be on the start of the section', token)
+			self.handle_error_pos('\'' + self.sectionList[token] + ' \' should only be on the start of the section', token)
 			return True
 		elif self.is_valid_end(self.sectionList, token):# refer to [func] is_valid_end
-			self.handle_error_pos(self.sectionList[token] + ' should only be on the end of the section', token)
+			self.handle_error_pos('\'' + self.sectionList[token] + ' \' should only be on the end of the section', token)
 			return True
 		else: #token is NOT token is CREATE or RUPTURE
 			return False
@@ -95,9 +108,11 @@ class Interpol:
 			return False
 
 	# [func] (return Boolean) test if var_name is valid
-	def is_valid_varname(self, entry):
-		if entry in keywords:
+	def is_valid_varname(self, token, pos):
+		if token in self.keywords:
+			self.handle_error_pos('Invalid var_name \'' + token + '\'', pos)
 			return False
+
 		else:
 			return True		
 
