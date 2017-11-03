@@ -11,7 +11,7 @@ class Interpol:
 	sectionList = ""
 
 	# [var] (list) keywords of interpol
-	keywords = ['CREATE', 'RUPTURE', 'DINT', 'DSTR', 'WITH', 'GIVEME?', 'GIVEYOU!', 'GIVEYOU!!', 'STORE', 'IN', 'PLUS', 'MINUS', 'TIMES', 'DIVBY', 'MODU', 'RAISE', 'ROOT', 'MEAN', 'DIST']
+	keywords = ['CREATE', 'RUPTURE', 'DINT', 'DSTR', 'WITH', 'GIVEME?', 'GIVEYOU!', 'GIVEYOU!!', 'STORE', 'IN', 'PLUS', 'MINUS', 'TIMES', 'DIVBY', 'MODU', 'RAISE', 'ROOT', 'MEAN', 'DIST', 'AND']
 	
 	# [func] initialize the [class] Interpol, trigerred if new instance [class] Interpol is created
 	def __init__(self):
@@ -22,13 +22,13 @@ class Interpol:
 	def print_header(self):
 		print('INTERPOL Interpreter v0.1 (v0.1, Oct 24 2017)')
 		print('The section should be between "CREATE" and "RUPTURE" keywords.')
+		print('Press [CTRL] + [C] to exit interpreter.')
 
 	# [func] get user input on console
 	def get_input(self):
 		while True:
 			self.expression = ""
 			self.sectionList = ""
-			print('Press [CTRL] + [C] to exit interpreter.')
 			file_name = raw_input('Enter the filename of the code to be executed: ') # get file_name of code to be executed
 			if file_name.endswith('.ipol'): # test if file_name has .ipol extension
 				try: # try if the requested file_name exists
@@ -53,6 +53,9 @@ class Interpol:
 		else: # Traverse all the codes in the statement
 			now_token = 1
 			now_req_token = 'KEYWORD'
+			now_var = []
+			var = {}
+
 			while True:
 				if now_token >= len(self.sectionList)-1: break # Test if the [var] now_token is the last to test; if true break
 				else: #now_token is NOT the last
@@ -60,10 +63,62 @@ class Interpol:
 						break
 					elif now_req_token == 'KEYWORD':
 						if self.sectionList[now_token] in self.keywords:
-							if self.is_valid_dint(self.sectionList[now_token]):
+							if self.is_dint(self.sectionList[now_token]):
 								if self.is_valid_varname(self.sectionList[now_token + 1], now_token + 1):
+									now_var = ['INT', self.sectionList[now_token + 1]]
+									var[now_var[1]] =  0
 									now_token = now_token + 2
 								else:
+									break
+							elif self.is_dstr(self.sectionList[now_token]):
+								if self.is_valid_varname(self.sectionList[now_token + 1], now_token + 1):
+									now_var = ['STRING', self.sectionList[now_token + 1]]
+									var[now_var[1]] =  ''
+									now_token = now_token + 2
+								else:
+									break
+							elif self.is_with(self.sectionList[now_token]):
+								if now_var == []:
+									self.handle_error_pos('Invalid token \'' + self.sectionList[now_token] + '\'', now_token)
+									break
+								elif now_var[0] == 'INT':
+									if self.sectionList[now_token + 1].isdigit():
+										var[now_var[1]] =  int(self.sectionList[now_token + 1])
+										now_token = now_token + 2
+										now_var = []
+									elif self.sectionList[now_token + 1] in self.keywords:
+										now_token = now_token + 1
+									else:
+										self.handle_error_pos('Invalid value \'' + self.sectionList[now_token + 1] + '\'', now_token)
+										break
+								elif now_var[0] == 'STRING':
+									if self.sectionList[now_token + 1].startswith('['):
+										if self.sectionList[now_token + 1].endswith(']'):
+											var[now_var[1]] =  self.sectionList[now_token + 1]
+											now_var = []
+											now_token = now_token + 2
+									else:
+										self.handle_error_pos('Invalid value \'' + self.sectionList[now_token + 1] + '\'', now_token)
+										break
+							elif self.is_giveme(self.sectionList[now_token]):
+								try: 
+									value = raw_input()
+									var[self.sectionList[now_token+1]] = value
+									now_token = now_token + 2
+								except KeyError:
+									self.handle_error_pos('Invalid var_name \'' + self.sectionList[now_token] + '\' not declared ', now_token)
+									break
+							elif self.is_giveyou1(self.sectionList[now_token]):
+								try: 
+									print(var[self.sectionList[now_token+1]])
+									now_token = now_token + 2
+								except KeyError:
+									break
+							elif self.is_giveyou2(self.sectionList[now_token]):
+								try: 
+									print(var[self.sectionList[now_token+1]] + '\n')
+									now_token = now_token + 2
+								except KeyError:
 									break
 							else:
 								break
@@ -71,17 +126,14 @@ class Interpol:
 							self.handle_error_pos('Invalid token \'' + self.sectionList[now_token] + '\'', now_token)
 							break
 
-	# [func] reset required token in interpreter
-	def reset_req_token_con():
-		pass
 
 	# [func] (return Boolean) test if [var] token is CREATE or RUPTURE
 	def is_valid_start_end(self, token): # [param] token -> current token
 		if self.is_valid_start(self.sectionList, token): # refer to [func] is_valid_start
-			self.handle_error_pos('\'' + self.sectionList[token] + ' \' should only be on the start of the section', token)
+			self.handle_error_pos('\'' + self.sectionList[token] + '\' should only be on the start of the section', token)
 			return True
 		elif self.is_valid_end(self.sectionList, token):# refer to [func] is_valid_end
-			self.handle_error_pos('\'' + self.sectionList[token] + ' \' should only be on the end of the section', token)
+			self.handle_error_pos('\'' + self.sectionList[token] + '\' should only be on the end of the section', token)
 			return True
 		else: #token is NOT token is CREATE or RUPTURE
 			return False
@@ -100,9 +152,44 @@ class Interpol:
 		else:
 			return False
 
-	# [func] (return Boolean) test if declare of int valid
-	def is_valid_dint(self, entry):
+	# [func] (return Boolean) test if declare of int
+	def is_dint(self, entry):
 		if entry == self.keywords[2]:
+			return True
+		else:
+			return False
+
+	# [func] (return Boolean) test if declare of str
+	def is_dstr(self, entry):
+		if entry == self.keywords[3]:
+			return True
+		else:
+			return False
+
+	# [func] (return Boolean) test if declare with value
+	def is_with(self, entry):
+		if entry == self.keywords[4]:
+			return True
+		else:
+			return False
+
+	# [func] (return Boolean) test if giveme
+	def is_giveme(self, entry):
+		if entry == self.keywords[5]:
+			return True
+		else:
+			return False
+
+	# [func] (return Boolean) test if giveyou
+	def is_giveyou1(self, entry):
+		if entry == self.keywords[6]:
+			return True
+		else:
+			return False
+
+	# [func] (return Boolean) test if declare of int valid
+	def is_giveyou2(self, entry):
+		if entry == self.keywords[7]:
 			return True
 		else:
 			return False
@@ -112,7 +199,6 @@ class Interpol:
 		if token in self.keywords:
 			self.handle_error_pos('Invalid var_name \'' + token + '\'', pos)
 			return False
-
 		else:
 			return True		
 
