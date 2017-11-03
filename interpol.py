@@ -3,6 +3,8 @@
 # Year			: 2017
 # Description	: simple integer oriented programming language that deals with integers with no floating-point values.
 
+import re
+
 # [class] Defining Interpol Class
 class Interpol:
 
@@ -12,6 +14,7 @@ class Interpol:
 
 	# [var] (list) keywords of interpol
 	keywords = ['CREATE', 'RUPTURE', 'DINT', 'DSTR', 'WITH', 'GIVEME?', 'GIVEYOU!', 'GIVEYOU!!', 'STORE', 'IN', 'PLUS', 'MINUS', 'TIMES', 'DIVBY', 'MODU', 'RAISE', 'ROOT', 'MEAN', 'DIST', 'AND']
+	operations = ['PLUS', 'MINUS', 'TIMES', 'DIVBY', 'MODU', 'RAISE', 'ROOT', 'MEAN', 'DIST']
 	
 	# [func] initialize the [class] Interpol, trigerred if new instance [class] Interpol is created
 	def __init__(self):
@@ -34,6 +37,7 @@ class Interpol:
 				try: # try if the requested file_name exists
 					file = open(file_name)
 					content = file.read()
+					content = re.sub("\[[^]]*\]", lambda x:x.group(0).replace(' ','~'), content)
 					self.expression = content.strip()	# [str func] Multiple whitespaces and tabs are removed
 					self.sectionList = self.expression.split()
 					self.interpret_code()	# refer to [func] interpret_code
@@ -54,6 +58,7 @@ class Interpol:
 			now_token = 1
 			now_req_token = 'KEYWORD'
 			now_var = []
+			var_names = []
 			var = {}
 
 			while True:
@@ -65,16 +70,26 @@ class Interpol:
 						if self.sectionList[now_token] in self.keywords:
 							if self.is_dint(self.sectionList[now_token]):
 								if self.is_valid_varname(self.sectionList[now_token + 1], now_token + 1):
-									now_var = ['INT', self.sectionList[now_token + 1]]
-									var[now_var[1]] =  0
-									now_token = now_token + 2
+									if not self.sectionList[now_token + 1] in var_names:
+										now_var = ['INT', self.sectionList[now_token + 1]]
+										var_names.append(self.sectionList[now_token + 1])
+										var[now_var[1]] =  0
+										now_token = now_token + 2
+									else:
+										self.handle_error_pos('Invalid var_name \'' + self.sectionList[now_token + 1] + '\' already used', now_token + 1)
+										break
 								else:
 									break
 							elif self.is_dstr(self.sectionList[now_token]):
 								if self.is_valid_varname(self.sectionList[now_token + 1], now_token + 1):
-									now_var = ['STRING', self.sectionList[now_token + 1]]
-									var[now_var[1]] =  ''
-									now_token = now_token + 2
+									if not self.sectionList[now_token + 1] in var_names:
+										now_var = ['STRING', self.sectionList[now_token + 1]]
+										var_names.append(self.sectionList[now_token + 1])
+										var[now_var[1]] =  ''
+										now_token = now_token + 2
+									else:
+										self.handle_error_pos('Invalid var_name \'' + self.sectionList[now_token + 1] + '\' already used', now_token + 1)
+										break
 								else:
 									break
 							elif self.is_with(self.sectionList[now_token]):
@@ -86,7 +101,7 @@ class Interpol:
 										var[now_var[1]] =  int(self.sectionList[now_token + 1])
 										now_token = now_token + 2
 										now_var = []
-									elif self.sectionList[now_token + 1] in self.keywords:
+									elif self.sectionList[now_token + 1] in self.operations:
 										now_token = now_token + 1
 									else:
 										self.handle_error_pos('Invalid value \'' + self.sectionList[now_token + 1] + '\'', now_token)
@@ -94,31 +109,39 @@ class Interpol:
 								elif now_var[0] == 'STRING':
 									if self.sectionList[now_token + 1].startswith('['):
 										if self.sectionList[now_token + 1].endswith(']'):
-											var[now_var[1]] =  self.sectionList[now_token + 1]
+											var[now_var[1]] =  self.sectionList[now_token + 1].strip('[]').replace('~',' ')
 											now_var = []
 											now_token = now_token + 2
 									else:
 										self.handle_error_pos('Invalid value \'' + self.sectionList[now_token + 1] + '\'', now_token)
 										break
 							elif self.is_giveme(self.sectionList[now_token]):
-								try: 
+								if self.sectionList[now_token+1] in var_names:
 									value = raw_input()
+									if isinstance(var[self.sectionList[now_token+1]], int):
+										if value.isdigit():
+											value = int(value)
+										else:
+											self.handle_error_pos('Invalid value \'' + self.sectionList[now_token+1] + '\' type mismatch', now_token+1)
+											break
 									var[self.sectionList[now_token+1]] = value
 									now_token = now_token + 2
-								except KeyError:
-									self.handle_error_pos('Invalid var_name \'' + self.sectionList[now_token] + '\' not declared ', now_token)
+								else:
+									self.handle_error_pos('Invalid variable \'' + self.sectionList[now_token+1] + '\' is not declared', now_token+1)
 									break
 							elif self.is_giveyou1(self.sectionList[now_token]):
-								try: 
-									print(var[self.sectionList[now_token+1]])
-									now_token = now_token + 2
-								except KeyError:
-									break
-							elif self.is_giveyou2(self.sectionList[now_token]):
-								try: 
-									print(var[self.sectionList[now_token+1]] + '\n')
-									now_token = now_token + 2
-								except KeyError:
+								print(var)
+								if self.sectionList[now_token+1] in var_names:
+									pass
+								elif self.sectionList[now_token+1] in self.operations:
+									pass
+								if self.sectionList[now_token + 1].startswith('['): # value dapat
+									if self.sectionList[now_token + 1].endswith(']'):
+										pass
+								elif self.sectionList[now_token+1].isdigit(): # value dapat
+									pass
+								else:
+									self.handle_error_pos('Invalid tokenz \'' + self.sectionList[now_token] + '\'', now_token)
 									break
 							else:
 								break
