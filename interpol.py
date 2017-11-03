@@ -15,6 +15,8 @@ class Interpol:
 	# [var] (list) keywords of interpol
 	keywords = ['CREATE', 'RUPTURE', 'DINT', 'DSTR', 'WITH', 'GIVEME?', 'GIVEYOU!', 'GIVEYOU!!', 'STORE', 'IN', 'PLUS', 'MINUS', 'TIMES', 'DIVBY', 'MODU', 'RAISE', 'ROOT', 'MEAN', 'DIST', 'AND']
 	operations = ['PLUS', 'MINUS', 'TIMES', 'DIVBY', 'MODU', 'RAISE', 'ROOT', 'MEAN', 'DIST']
+	enders = ['RUPTURE', 'DINT', 'DSTR', 'GIVEME?', 'GIVEYOU!', 'GIVEYOU!!', 'STORE', 'IN']
+	starters = ['WITH', 'DINT', 'DSTR', 'GIVEME?', 'GIVEYOU!', 'GIVEYOU!!', 'STORE', 'IN']
 	
 	# [func] initialize the [class] Interpol, trigerred if new instance [class] Interpol is created
 	def __init__(self):
@@ -56,7 +58,6 @@ class Interpol:
 			self.handle_error_pos('Invalid end of section at \'' + self.sectionList[len(self.sectionList)-1] +  '\'',len(self.sectionList)-1)
 		else: # Traverse all the codes in the statement
 			now_token = 1
-			now_req_token = 'KEYWORD'
 			now_var = []
 			var_names = []
 			var = {}
@@ -66,121 +67,259 @@ class Interpol:
 				else: #now_token is NOT the last
 					if self.is_valid_start_end(now_token): # refer to [func] is_valid_start_end
 						break
-					elif now_req_token == 'KEYWORD':
-						if self.sectionList[now_token] in self.keywords:
-							if self.is_dint(self.sectionList[now_token]):
-								if self.is_valid_varname(self.sectionList[now_token + 1], now_token + 1):
-									if not self.sectionList[now_token + 1] in var_names:
-										now_var = ['INT', self.sectionList[now_token + 1]]
-										var_names.append(self.sectionList[now_token + 1])
-										var[now_var[1]] =  0
-										now_token = now_token + 2
-									else:
-										self.handle_error_pos('Invalid var_name \'' + self.sectionList[now_token + 1] + '\' already used', now_token + 1)
-										break
-								else:
-									break
-							elif self.is_dstr(self.sectionList[now_token]):
-								if self.is_valid_varname(self.sectionList[now_token + 1], now_token + 1):
-									if not self.sectionList[now_token + 1] in var_names:
-										now_var = ['STRING', self.sectionList[now_token + 1]]
-										var_names.append(self.sectionList[now_token + 1])
-										var[now_var[1]] =  ''
-										now_token = now_token + 2
-									else:
-										self.handle_error_pos('Invalid var_name \'' + self.sectionList[now_token + 1] + '\' already used', now_token + 1)
-										break
-								else:
-									break
-							elif self.is_with(self.sectionList[now_token]):
-								if now_var == []:
-									self.handle_error_pos('Invalid token \'' + self.sectionList[now_token] + '\'', now_token)
-									break
-								elif now_var[0] == 'INT':
-									if self.sectionList[now_token + 1].isdigit():
-										var[now_var[1]] =  int(self.sectionList[now_token + 1])
-										now_token = now_token + 2
-										now_var = []
-									elif self.sectionList[now_token + 1] in self.operations:
-										var[now_var[1]] = self.evaluate(now_token+1)
-										now_token = now_token + 4
-									else:
-										self.handle_error_pos('Invalid value \'' + self.sectionList[now_token + 1] + '\'', now_token)
-										break
-								elif now_var[0] == 'STRING':
-									if self.sectionList[now_token + 1].startswith('['):
-										if self.sectionList[now_token + 1].endswith(']'):
-											var[now_var[1]] =  self.sectionList[now_token + 1].strip('[]').replace('~',' ')
-											now_var = []
-											now_token = now_token + 2
-									else:
-										self.handle_error_pos('Invalid value \'' + self.sectionList[now_token + 1] + '\'', now_token)
-										break
-							elif self.is_giveme(self.sectionList[now_token]):
-								if self.sectionList[now_token+1] in var_names:
-									value = raw_input()
-									if isinstance(var[self.sectionList[now_token+1]], int):
-										if value.isdigit():
-											value = int(value)
-										else:
-											self.handle_error_pos('Invalid value \'' + self.sectionList[now_token+1] + '\' type mismatch', now_token+1)
-											break
-									var[self.sectionList[now_token+1]] = value
+					elif self.sectionList[now_token] in self.starters:
+						if self.is_dint(self.sectionList[now_token]):
+							if self.is_valid_varname(self.sectionList[now_token + 1], now_token + 1):
+								if not self.sectionList[now_token + 1] in var_names:
+									now_var = ['INT', self.sectionList[now_token + 1]]
+									var_names.append(self.sectionList[now_token + 1])
+									var[now_var[1]] =  0
 									now_token = now_token + 2
 								else:
-									self.handle_error_pos('Invalid variable \'' + self.sectionList[now_token+1] + '\' is not declared', now_token+1)
-									break
-
-							elif self.is_giveyou1(self.sectionList[now_token]):
-								if self.sectionList[now_token+1] in var_names:
-									print var[self.sectionList[now_token+1]]
-									now_token = now_token + 2
-								elif self.sectionList[now_token+1] in self.operations:
-									print self.evaluate(int(now_token+1))
-									now_token = now_token + 4
-								elif self.sectionList[now_token + 1].startswith('['): # value dapat
-									if self.sectionList[now_token + 1].endswith(']'):
-										print self.sectionList[now_token+1].strip('[]').replace('~',' ')
-										now_token = now_token + 2
-								elif self.sectionList[now_token+1].isdigit(): # value dapat
-										print self.sectionList[now_token+1]
-										now_token = now_token + 2
-								else:
-									self.handle_error_pos('Invalid token \'' + self.sectionList[now_token+1] + '\'', now_token)
-									break
-
-							elif self.is_giveyou2(self.sectionList[now_token]):
-								if self.sectionList[now_token+1] in var_names:
-									print str(var[self.sectionList[now_token+1]]) + '\n'
-									now_token = now_token + 2
-								elif self.sectionList[now_token+1] in self.operations:
-									print self.evaluate(int(now_token+1))
-									now_token = now_token + 4
-								elif self.sectionList[now_token + 1].startswith('['): # value dapat
-									if self.sectionList[now_token + 1].endswith(']'):
-										print str(self.sectionList[now_token+1].strip('[]').replace('~',' ')) + '\n'
-										now_token = now_token + 2
-								elif self.sectionList[now_token+1].isdigit(): # value dapat
-										print str(self.sectionList[now_token+1]) + '\n'
-										now_token = now_token + 2
-								else:
-									self.handle_error_pos('Invalid token \'' + self.sectionList[now_token+1] + '\'', now_token)
+									self.handle_error_pos('Invalid var_name \'' + self.sectionList[now_token + 1] + '\' already used', now_token + 1)
 									break
 							else:
 								break
+						elif self.is_dstr(self.sectionList[now_token]):
+							if self.is_valid_varname(self.sectionList[now_token + 1], now_token + 1):
+								if not self.sectionList[now_token + 1] in var_names:
+									now_var = ['STRING', self.sectionList[now_token + 1]]
+									var_names.append(self.sectionList[now_token + 1])
+									var[now_var[1]] =  ''
+									now_token = now_token + 2
+								else:
+									self.handle_error_pos('Invalid var_name \'' + self.sectionList[now_token + 1] + '\' already used', now_token + 1)
+									break
+							else:
+								break
+						elif self.is_with(self.sectionList[now_token]):
+							if now_var == []:
+								self.handle_error_pos('Invalid token \'' + self.sectionList[now_token] + '\'', now_token)
+								break
+							elif now_var[0] == 'INT':
+								if self.sectionList[now_token + 1].isdigit():
+									var[now_var[1]] =  int(self.sectionList[now_token + 1])
+									now_token = now_token + 2
+									now_var = []
+								elif self.sectionList[now_token + 1] in self.operations:
+									var[now_var[1]] = self.evaluate(now_token+1, var_names, var)
+									now_token = self.get_next_starter(now_token+1)
+								else:
+									self.handle_error_pos('Invalid value \'' + self.sectionList[now_token + 1] + '\'', now_token)
+									break
+							elif now_var[0] == 'STRING':
+								if self.sectionList[now_token + 1].startswith('['):
+									if self.sectionList[now_token + 1].endswith(']'):
+										var[now_var[1]] =  self.sectionList[now_token + 1].strip('[]').replace('~',' ')
+										now_var = []
+										now_token = now_token + 2
+									else:
+										self.handle_error_pos('Invalid value \'' + self.sectionList[now_token + 1] + '\'', now_token)
+										break
+								else:
+									self.handle_error_pos('Invalid value \'' + self.sectionList[now_token + 1] + '\'', now_token)
+									break
+						elif self.is_store(self.sectionList[now_token]):
+							if self.sectionList[now_token + 1].isdigit():
+								now_var = ['INT', self.sectionList[now_token + 1]]
+								now_token = now_token + 2
+							elif self.sectionList[now_token + 1] in self.operations:
+								now_var = ['INT', self.evaluate(now_token+1, var_names, var)]
+								now_token = self.get_next_starter(now_token+1)
+							elif self.sectionList[now_token + 1].startswith('['):
+								if self.sectionList[now_token + 1].endswith(']'):
+									now_var = ['STRING', self.sectionList[now_token + 1].strip('[]').replace('~',' ')]
+									now_token = now_token + 2
+								else:
+									self.handle_error_pos('Invalid value \'' + self.sectionList[now_token + 1] + '\'', now_token)
+									break
+							else:
+								self.handle_error_pos('Invalid value \'' + self.sectionList[now_token + 1] + '\'', now_token)
+								break
+
+						elif self.is_in(self.sectionList[now_token]):
+							if self.sectionList[now_token+1] in var_names:
+								if now_var == []:
+									self.handle_error_pos('Invalid token \'' + self.sectionList[now_token+1] + '\'', now_token + 1)
+									break
+								if str(now_var[1]).isdigit():
+									if now_var[0] == 'INT':
+										var[self.sectionList[now_token+1]] =  int(now_var[1])
+										now_token = now_token + 2
+										now_var = []
+									else:
+										self.handle_error_pos('Invalid value \'' + self.sectionList[now_token+1] + '\' type mismatch', now_token+1)
+										break
+								else:
+									if now_var[0] == 'STRING':
+										if not str(var[self.sectionList[now_token+1]]).isdigit():
+											var[self.sectionList[now_token+1]] =  now_var[1].strip('[]').replace('~',' ')
+											now_var = []
+											now_token = now_token + 2
+										else:
+											self.handle_error_pos('Invalid value \'' + self.sectionList[now_token+1] + '\' type mismatch', now_token+1)
+											break	
+									else:
+										self.handle_error_pos('Invalid value \'' + self.sectionList[now_token+1] + '\' type mismatch', now_token+1)
+										break
+							else:
+								self.handle_error_pos('Invalid token \'' + self.sectionList[now_token+1] + '\'', now_token)
+								break
+
+						elif self.is_giveme(self.sectionList[now_token]):
+							if self.sectionList[now_token+1] in var_names:
+								value = raw_input()
+								if isinstance(var[self.sectionList[now_token+1]], int):
+									if value.isdigit():
+										value = int(value)
+									else:
+										self.handle_error_pos('Invalid value \'' + self.sectionList[now_token+1] + '\' type mismatch', now_token+1)
+										break
+								var[self.sectionList[now_token+1]] = value
+								now_token = now_token + 2
+							else:
+								self.handle_error_pos('Invalid variable \'' + self.sectionList[now_token+1] + '\' is not declared', now_token+1)
+								break
+
+						elif self.is_giveyou1(self.sectionList[now_token]):
+							if self.sectionList[now_token+1] in var_names:
+								print var[self.sectionList[now_token+1]]
+								now_token = now_token + 2
+							elif self.sectionList[now_token+1] in self.operations:
+								print self.evaluate(int(now_token+1), var_names, var)
+								now_token = self.get_next_starter(now_token+1)
+							elif self.sectionList[now_token + 1].startswith('['): # value dapat
+								if self.sectionList[now_token + 1].endswith(']'):
+									print self.sectionList[now_token+1].strip('[]').replace('~',' ')
+									now_token = now_token + 2
+							elif self.sectionList[now_token+1].isdigit(): # value dapat
+									print self.sectionList[now_token+1]
+									now_token = now_token + 2
+							else:
+								self.handle_error_pos('Invalid token \'' + self.sectionList[now_token+1] + '\'', now_token)
+								break
+
+						elif self.is_giveyou2(self.sectionList[now_token]):
+							if self.sectionList[now_token+1] in var_names:
+								print str(var[self.sectionList[now_token+1]]) + '\n'
+								now_token = now_token + 2
+							elif self.sectionList[now_token+1] in self.operations:
+								print self.evaluate(int(now_token+1), var_names, var)
+								now_token = self.get_next_starter(now_token+1)
+							elif self.sectionList[now_token + 1].startswith('['): # value dapat
+								if self.sectionList[now_token + 1].endswith(']'):
+									print str(self.sectionList[now_token+1].strip('[]').replace('~',' ')) + '\n'
+									now_token = now_token + 2
+							elif self.sectionList[now_token+1].isdigit(): # value dapat
+									print str(self.sectionList[now_token+1]) + '\n'
+									now_token = now_token + 2
+							else:
+								self.handle_error_pos('Invalid token \'' + self.sectionList[now_token+1] + '\'', now_token)
+								break
 						else:
-							self.handle_error_pos('Invalid token \'' + self.sectionList[now_token] + '\'', now_token)
 							break
+					else:
+						self.handle_error_pos('Invalid token \'' + self.sectionList[now_token] + '\'', now_token)
+						break
+
+	def get_next_starter(self, pos):
+		while True:
+			if not self.sectionList[pos] in self.enders:
+				pos = pos + 1
+			else:
+				break
+		return pos
+
+	def get_operations(self, pos):
+		operations = []
+		while True:
+			if not self.sectionList[pos] in self.enders:
+				operations.append(self.sectionList[pos])
+				pos = pos + 1
+			else:
+				break
+		return operations
+
 	# [func] evaluate
-	def evaluate(self, pos):
-		if self.is_plus(self.sectionList, pos):
-			return int(self.sectionList[pos + 1]) + int(self.sectionList[pos + 2])
-		elif self.is_minus(self.sectionList, pos):
-			return int(self.sectionList[pos + 1]) - int(self.sectionList[pos + 2])
-		elif self.is_times(self.sectionList, pos):
-			return int(self.sectionList[pos + 1]) * int(self.sectionList[pos + 2])
-		elif self.is_divide(self.sectionList, pos):
-			return int(self.sectionList[pos + 2]) / int(self.sectionList[pos + 1])
+	def evaluate(self, pos, var_names, var):
+		OprStack = []
+		Operations = self.get_operations(pos)
+		for t in reversed(Operations):
+			pos = pos + 1
+			if t == 'PLUS':
+				if len(OprStack) == 2:
+					OprStack[-2:] = [int(OprStack[-1]) + int(OprStack[-2])]
+				else:
+					self.handle_error_pos('Arithmetic error occured \'' + t + '\'', pos)
+					break
+			elif t == 'MINUS':
+				if len(OprStack) == 2:
+					OprStack[-2:] = [int(OprStack[-1]) - int(OprStack[-2])]
+				else:
+					self.handle_error_pos('Arithmetic error occured at \'' + t + '\'', pos)
+					break
+			elif t == 'TIMES':
+				if len(OprStack) == 2:
+					OprStack[-2:] = [int(OprStack[-1]) * int(OprStack[-2])]
+				else:
+					self.handle_error_pos('Arithmetic error occured at \'' + t + '\'', pos)
+					break
+			elif t == 'DIVBY':
+				if len(OprStack) == 2:
+					if not int(OprStack[-2]) == 0:
+						OprStack[-2:] = [int(OprStack[-1]) / int(OprStack[-2])]
+					else:
+						self.handle_error_pos('Arithmetic error occured at \'' + t + '\'', pos)
+						break
+				else:
+					self.handle_error_pos('Arithmetic error occured at \'' + t + '\'', pos)
+					break
+			elif t == 'RAISE':
+				if len(OprStack) == 2:
+					OprStack[-2:] = [int(OprStack[-1]) ** int(OprStack[-2])]
+				else:
+					self.handle_error_pos('Arithmetic error occured at \'' + t + '\'', pos)
+					break
+			elif t == 'ROOT':
+				if len(OprStack) == 2:
+					OprStack[-2:] = [int(OprStack[-2]) ** (1 / float(OprStack[-1]))]
+				else:
+					self.handle_error_pos('Arithmetic error occured at \'' + t + '\'', pos)
+					break
+			elif t == 'MODU':
+				if len(OprStack) == 2:
+					if not int(OprStack[-2]) == 0:
+						OprStack[-2:] = [int(OprStack[-1]) % int(OprStack[-2])]
+					else:
+						self.handle_error_pos('Arithmetic error occured at \'' + t + '\'', pos)
+						break
+				else:
+					self.handle_error_pos('Arithmetic error occured at \'' + t + '\'', pos)
+					break
+			elif t == 'MEAN':
+				OprStack[-2:] = [self.get_mean(OprStack)]
+			elif t in var_names:
+				if str(var[t]).isdigit():
+					OprStack.append(int(var[t]))
+				else:
+					self.handle_error_pos('Invalid token \'' + t + '\'', pos)
+					break
+			elif not str(t).isdigit():
+				self.handle_error_pos('Invalid token \'' + t + '\'', pos)
+				break
+			else: OprStack.append(t)
+		if not OprStack == []:
+			return OprStack[0]
+
+	def get_mean(self, OprStack):
+	    pos = 0
+	    Ans = 0
+	    length = len(OprStack) - 1
+	    for i in OprStack:
+	        if pos < length:
+	            Ans += int(OprStack[pos])
+	        pos += 1
+	    return Ans / length
 
 	# [func] (return Boolean) test if [var] token is CREATE or RUPTURE
 	def is_valid_start_end(self, token): # [param] token -> current token
@@ -208,36 +347,22 @@ class Interpol:
 			return False
 
 	# [func] (return Boolean) test if declare of int
-	def is_plus(self, token, pos):
-		if token[pos] == self.keywords[10]:
-			return True
-		else:
-			return False
-
-	# [func] (return Boolean) test if declare of int
-	def is_minus(self, token, pos):
-		if token[pos] == self.keywords[11]:
-			return True
-		else:
-			return False
-
-	# [func] (return Boolean) test if declare of int
-	def is_times(self, token, pos):
-		if token[pos] == self.keywords[12]:
-			return True
-		else:
-			return False
-
-	# [func] (return Boolean) test if declare of int
-	def is_divide(self, token, pos):
-		if token[pos] == self.keywords[13]:
-			return True
-		else:
-			return False
-
-	# [func] (return Boolean) test if declare of int
 	def is_dint(self, entry):
 		if entry == self.keywords[2]:
+			return True
+		else:
+			return False
+
+	# [func] (return Boolean) test if store
+	def is_store(self, entry):
+		if entry == self.keywords[8]:
+			return True
+		else:
+			return False
+
+	# [func] (return Boolean) test if in
+	def is_in(self, entry):
+		if entry == self.keywords[9]:
 			return True
 		else:
 			return False
